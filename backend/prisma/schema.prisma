@@ -1,0 +1,148 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  USER
+  STORE_OWNER
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(60)
+  email     String   @unique @db.VarChar(255)
+  password  String
+  address   String   @db.VarChar(400)
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ratings   Rating[]
+  store     Store?     @relation("StoreOwner")
+  cartItems CartItem[]
+  orders    Order[]
+  feedbacks Feedback[]
+
+  @@map("users")
+}
+
+model Store {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  address   String   @db.VarChar(400)
+  shopType  String   @default("Kirana") @db.VarChar(100)
+  state     String   @default("") @db.VarChar(100)
+  city      String   @default("") @db.VarChar(100)
+  village   String?  @db.VarChar(100)
+  pincode   String   @default("") @db.VarChar(20)
+  shopNo    String   @default("") @db.VarChar(100)
+  ownerId   Int?     @unique
+  owner     User?    @relation("StoreOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  ratings   Rating[]
+  products  Product[]
+  orders    Order[]
+
+  @@map("stores")
+}
+
+model Rating {
+  id        Int      @id @default(autoincrement())
+  value     Int
+  userId    Int
+  storeId   Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, storeId])
+  @@map("ratings")
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?  @db.VarChar(500)
+  storeId     Int
+  store       Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int      @default(1)
+
+  @@unique([userId, productId])
+  @@map("cart_items")
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId     Int
+  store       Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  totalAmount Decimal     @db.Decimal(10, 2)
+  status      OrderStatus @default(PENDING)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  items       OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  price     Decimal  @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  text      String   @db.Text
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@map("feedbacks")
+}
