@@ -4,6 +4,7 @@
   "description": "Store Rating Platform Backend",
   "main": "src/index.js",
   "scripts": {
+    "postinstall": "prisma generate",
     "build": "prisma generate",
     "dev": "nodemon src/index.js",
     "start": "node src/index.js",
